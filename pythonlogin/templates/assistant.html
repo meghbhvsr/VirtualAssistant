@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Assistant</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.10.2/main.min.css" rel="stylesheet">
+    <style>
+        .chat-container {
+            max-width: 600px;
+            margin: 0 auto;
+            margin-top: 50px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .chat-log {
+            height: 600px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            background: #ffffff;
+            margin-bottom: 15px;
+        }
+        .chat-message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 100%;
+        }
+        .chat-message-user {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 100%;
+            background-color: #007bff;
+            color: blue;
+            align-self: flex-end;
+            text-align: right;
+        }
+        .chat-message-bot {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 100%;
+            background-color: #e9ecef;
+            color: gray;
+            align-self: flex-start;
+            text-align: left;
+        }
+        .d-flex {
+            display: flex;
+            flex-direction: column;
+        }
+        #reminderForm {
+            display: none;
+            position: absolute; /* Position the form absolutely */
+            top: 50%; /* Center vertically */
+            left: 50%; /* Center horizontally */
+            transform: translate(-50%, -50%); /* Adjust position */
+            background-color: white; /* Background color */
+            padding: 20px; /* Padding */
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1); /* Box shadow */
+            border-radius: 8px; /* Border radius */
+        }
+        #emailForm {
+            display: none;
+            position: absolute; /* Position the form absolutely */
+            top: 50%; /* Center vertically */
+            left: 50%; /* Center horizontally */
+            transform: translate(-50%, -50%); /* Adjust position */
+            background-color: white; /* Background color */
+            padding: 20px; /* Padding */
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1); /* Box shadow */
+            border-radius: 8px; /* Border radius */
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="/home">Virtual Assistant App</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/virtual-assistant">Virtual Assistant</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/calendar">Calendar</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/profile">Profile</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/logout">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <!-- <div class="chat-box">
+        <h1>Virtual Assistant</h1>
+        <div class="chat-log" id="chat-log"></div>
+        <div class="chat-input">
+            <input type="text" id="message" name="message" placeholder="Ask me anything or set a reminder">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div> -->
+    <div class="container chat-container">
+        <div class="chat-log d-flex" id="chat-log"></div>
+        <form id="chat-form">
+            <div class="input-group">
+                <input type="text" class="form-control" id="message" placeholder="Type a message..." required>
+                <div class="input-group-append">
+                    <button class="btn btn-primary" type="submit" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div id="reminderForm">
+        <h2>Set a Reminder</h2>
+        <form id="setReminderForm">
+            <label for="task">Task:</label><br>
+            <input type="text" id="task" name="task" required><br><br>
+            <label for="date">Date (YYYY-MM-DD):</label><br>
+            <input type="text" id="date" name="date" required><br><br>
+            <label for="time">Time (HH:MM):</label><br>
+            <input type="text" id="time" name="time" required><br><br>
+            <label for="duration">Duration (Minutes):</label><br>
+            <input type="text" id="duration" name="duration" required><br><br>
+            <button onclick="setReminder(event)">Set Reminder</button>
+            <button type="button" onclick="cancelReminder()">Cancel</button>
+        </form>
+    </div>
+
+    <div id="emailForm">
+        <h2>Send an Email</h2>
+        <form id="setEmailForm">
+            <label for="recipient-email">Recipient Email:</label><br>
+            <input type="text" id="recipient-email" name="recipient-email" required><br><br>
+            <label for="date">Email Subject</label><br>
+            <input type="text" id="email-subject" name="email-subject" required><br><br>
+            <button onclick="sendEmail(event)">Send Email</button>
+            <button type="button" onclick="cancelEmail()">Cancel</button>
+        </form>
+    </div>
+    <script>
+        function sendMessage() {
+            var userInput = document.getElementById("message").value;
+            if (userInput.trim() === "") return;
+
+            if (userInput.toLowerCase().includes('reminder') && !userInput.toLowerCase().includes('reminders') && !userInput.toLowerCase().includes('delete') && !userInput.toLowerCase().includes('clear')) {
+                event.preventDefault();
+                document.getElementById('reminderForm').style.display = 'block';
+            }
+
+            if (userInput.toLowerCase().includes('email') || userInput.toLowerCase().includes('e-mail')) {
+                event.preventDefault();
+                document.getElementById('emailForm').style.display = 'block';
+            }
+            // Display user message
+            var chatLog = document.getElementById("chat-log");
+            var userMessage = document.createElement("div");
+            userMessage.className = "chat-message";
+            userMessage.innerHTML = `<div class="chat-message-user">${userInput}</div>`;
+            chatLog.appendChild(userMessage);
+            chatLog.scrollTop = chatLog.scrollHeight;
+
+            // Send message to the server
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `message=${encodeURIComponent(userInput)}`,
+            })
+            
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                // Display assistant message
+                var assistantMessage = document.createElement("div");
+                assistantMessage.className = "chat-message";
+                assistantMessage.innerHTML = `<div class="chat-message-bot">${data.response}</div>`;
+                chatLog.appendChild(assistantMessage);
+                chatLog.scrollTop = chatLog.scrollHeight;
+            });
+
+            // Clear the input
+            document.getElementById("message").value = "";
+        } 
+        function setReminder(event) {
+            event.preventDefault();
+            const form = document.getElementById('setReminderForm');
+            const formData = new FormData(form);
+            const task = formData.get('task');
+            const date = formData.get('date');
+            const time = formData.get('time');
+            const duration = formData.get('duration');
+            const reminder = {
+                task: task,
+                date: date,
+                time: time,
+                duration: duration
+            };
+            console.log(time)
+            fetch('/set_reminder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(reminder)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                // Display assistant message
+                var assistantMessage = document.createElement("div");
+                assistantMessage.className = "chat-message";
+                assistantMessage.innerHTML = `<div class="chat-message-bot">${data.message}</div>`;
+                var chatLog = document.getElementById("chat-log");
+                chatLog.appendChild(assistantMessage);
+                chatLog.scrollTop = chatLog.scrollHeight;
+            });
+            document.getElementById('reminderForm').style.display = 'none';
+        }
+
+        function cancelReminder() {
+            document.getElementById('reminderForm').style.display = 'none';
+        }
+
+        function sendEmail(event) {
+            event.preventDefault(); 
+            const form = document.getElementById('setEmailForm');
+            const formData = new FormData(form);
+            const recipientEmail = formData.get('recipient-email');
+            const emailSubject = formData.get('email-subject');
+            const email = {
+                recipientEmail: recipientEmail,
+                emailSubject: emailSubject
+            }
+            fetch('/send_email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(email)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                // Display assistant message
+                var assistantMessage = document.createElement("div");
+                assistantMessage.className = "chat-message";
+                assistantMessage.innerHTML = `<div class="chat-message-bot">${data.message}</div>`;
+                var chatLog = document.getElementById("chat-log");
+                chatLog.appendChild(assistantMessage);
+                chatLog.scrollTop = chatLog.scrollHeight;
+            });
+            document.getElementById('emailForm').style.display = 'none';
+        }        
+        
+        function cancelEmail() {
+            document.getElementById('emailForm').style.display = 'none';
+        }
+        
+        
+    </script>
+</body>
+</html>

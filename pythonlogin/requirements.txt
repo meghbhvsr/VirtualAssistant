@@ -1,0 +1,6 @@
+Flask==3.0.3
+Flask_MySQLdb==2.0.0
+MySQL-python==1.2.5
+openai==1.35.3
+PyAutoGUI==0.9.54
+python-dotenv==1.0.1

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FullCalendar CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.10.2/main.min.css" rel="stylesheet">
+    <style>
+        .calendar {
+            display: none;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        .calendar.active {
+            display: grid;
+        }
+        .month {
+            border: 1px solid #dee2e6;
+            padding: 1rem;
+            background-color: #f8f9fa;
+        }
+        .month-name {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1rem;
+        }
+        .day {
+            padding: 0.5rem;
+            background-color: white;
+            border: 1px solid #dee2e6;
+            position: relative;
+        }
+        .day:hover {
+            background-color: #e2e6ea;
+        }
+        .events {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 120px;
+            background-color: white;
+            border: 1px solid #dee2e6;
+            z-index: 10;
+            padding: 0.5rem;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .day:hover .events {
+            display: block;
+        }
+        .navigation {
+            text-align: center;
+            margin: 2rem 0;
+        }
+        .day-with-reminder {
+            background-color: #ffcccc; /* Light red background */
+        }
+        .today {
+            background-color: red;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="/home">Virtual Assistant App</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/virtual-assistant">Virtual Assistant</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/calendar">Calendar</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/profile">Profile</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/logout">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="container">
+        <h1 class="text-center">Event Calendar</h1>
+        <div class="navigation">
+            <button id="prevMonth" class="btn btn-primary">Previous</button>
+            <button id="nextMonth" class="btn btn-primary">Next</button>
+        </div>
+        <div id="calendarContainer"></div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- FullCalendar JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.10.2/main.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarContainer = document.getElementById('calendarContainer');
+            const monthNames = ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"];
+            
+            let currentYear = new Date().getFullYear();
+            let currentMonth = new Date().getMonth();
+            let currentDay = new Date().getDate();
+            const todayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
+            fetch('/get_user_id')
+                .then(response => response.json())
+                .then(data => {
+                    userId = data.user_id;
+                    console.log('User ID:', data.user_id);
+                    // Use the user ID as needed in your calendar code
+                
+                    fetch(`/get_reminders/${userId}`)
+                        .then(response => response.json())
+                        .then(reminders => {
+                            function createMonthCalendar(year, month) {
+                                console.log(reminders)
+                                const monthDiv = document.createElement('div');
+                                monthDiv.className = 'calendar';
+                                monthDiv.dataset.year = year;
+                                monthDiv.dataset.month = month;
+                                
+                                const monthNameDiv = document.createElement('div');
+                                monthNameDiv.className = 'month-name';
+                                monthNameDiv.textContent = `${monthNames[month]} ${year}`;
+                                monthDiv.appendChild(monthNameDiv);
+                                
+                                const daysDiv = document.createElement('div');
+                                daysDiv.className = 'days';
+                                
+                                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                               
+                                console.log(todayStr)
+                                for (let day = 1; day <= daysInMonth; day++) {
+                                    const dayDiv = document.createElement('div');
+                                    dayDiv.className = 'day';
+                                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                    dayDiv.innerHTML = `<div>${day}</div>`;
+
+                                    if (todayStr == dateStr) {
+                                        dayDiv.classList.add('today');
+                                    }
+                                    reminders.forEach(reminder => {
+                                        if (reminder['date'] === dateStr) {
+                                            let eventsDiv = dayDiv.querySelector('.events');
+                                            if (!eventsDiv) {
+                                                eventsDiv = document.createElement('div');
+                                                eventsDiv.className = 'events';
+                                                dayDiv.appendChild(eventsDiv);
+                                            }
+
+                                            const eventDiv = document.createElement('div');
+                                            eventDiv.textContent = reminder['task'] + "\n at \n " + reminder['time'];
+                                            eventsDiv.appendChild(eventDiv);
+                                            dayDiv.classList.add('day-with-reminder');
+                                        }
+                                    });
+                                    daysDiv.appendChild(dayDiv);
+                                }
+                                
+                                monthDiv.appendChild(daysDiv);
+                                return monthDiv;
+                            }
+                
+                            function showCalendar(year, month) {
+                                const allCalendars = document.querySelectorAll('.calendar');
+                                allCalendars.forEach(calendar => calendar.classList.remove('active'));
+                                
+                                let calendar = document.querySelector(`.calendar[data-year="${year}"][data-month="${month}"]`);
+                                if (!calendar) {
+                                    calendar = createMonthCalendar(year, month);
+                                    calendarContainer.appendChild(calendar);
+                                }
+                                calendar.classList.add('active');
+                            }
+                
+                            document.getElementById('prevMonth').addEventListener('click', () => {
+                                currentMonth--;
+                                if (currentMonth < 0) {
+                                    currentMonth = 11;
+                                    currentYear--;
+                                }
+                                showCalendar(currentYear, currentMonth);
+                            });
+                
+                            document.getElementById('nextMonth').addEventListener('click', () => {
+                                currentMonth++;
+                                if (currentMonth > 11) {
+                                    currentMonth = 0;
+                                    currentYear++;
+                                }
+                                showCalendar(currentYear, currentMonth);
+                            });
+                
+                            showCalendar(currentYear, currentMonth);
+                        })
+                        .catch(error => console.error('Error fetching reminders:', error));
+                    })
+                .catch(error => {
+                    console.error('Error fetching user ID:', error);
+                });
+        });
+        
+    </script>
+</body>
+</html>
